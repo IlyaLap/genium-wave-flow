@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 
 interface HSVColor {
@@ -465,7 +464,8 @@ const SplashCursor: React.FC = () => {
       return;
     }
     
-    let velocity = createDoubleFBO(simWidth, simHeight, gl.RG, halfFloat);
+    // Fix: Replace gl.RG with gl.RGBA for compatibility with WebGL1
+    let velocity = createDoubleFBO(simWidth, simHeight, gl.RGBA, halfFloat);
     let density = createDoubleFBO(dyeWidth, dyeHeight, gl.RGB, halfFloat);
     let pressure = createDoubleFBO(simWidth, simHeight, gl.RGB, halfFloat);
     let divergence = createFBO(simWidth, simHeight, gl.RGB, halfFloat);
