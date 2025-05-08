@@ -25,9 +25,6 @@ const Index = () => {
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
               Welcome to <span className="text-genium-purple">Genium Group</span>
             </h1>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              We specialize in creating innovative digital solutions that empower businesses to reach their full potential. Our team of experts is dedicated to delivering excellence across various domains.
-            </p>
           </section>
           
           {/* Subsidiaries Section */}

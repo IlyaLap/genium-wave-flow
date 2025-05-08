@@ -69,13 +69,11 @@ const SplashCursor: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    let gl = canvas.getContext('webgl2') as WebGL2RenderingContext;
+    // Use a type assertion to make TypeScript happy with either WebGL context type
+    const gl = (canvas.getContext('webgl') || canvas.getContext('webgl2')) as WebGLRenderingContext;
     if (!gl) {
-      gl = canvas.getContext('webgl') as WebGLRenderingContext;
-      if (!gl) {
-        console.error('WebGL not supported');
-        return;
-      }
+      console.error('WebGL not supported');
+      return;
     }
 
     // Set canvas dimensions
@@ -458,11 +456,20 @@ const SplashCursor: React.FC = () => {
     const texelSize = [texelSizeX, texelSizeY];
     
     // Create simulation FBOs
-    let velocity = createDoubleFBO(simWidth, simHeight, gl.RG, (gl as any).HALF_FLOAT_OES || (gl as WebGL2RenderingContext).HALF_FLOAT);
-    let density = createDoubleFBO(dyeWidth, dyeHeight, gl.RGB, (gl as any).HALF_FLOAT_OES || (gl as WebGL2RenderingContext).HALF_FLOAT);
-    let pressure = createDoubleFBO(simWidth, simHeight, gl.RGB, (gl as any).HALF_FLOAT_OES || (gl as WebGL2RenderingContext).HALF_FLOAT);
-    let divergence = createFBO(simWidth, simHeight, gl.RGB, (gl as any).HALF_FLOAT_OES || (gl as WebGL2RenderingContext).HALF_FLOAT);
-    let curl = createFBO(simWidth, simHeight, gl.RGB, (gl as any).HALF_FLOAT_OES || (gl as WebGL2RenderingContext).HALF_FLOAT);
+    const halfFloat = gl.getExtension('OES_texture_half_float')?.HALF_FLOAT_OES || 
+                      (gl as any).HALF_FLOAT;
+    
+    // Make sure the halfFloat type exists
+    if (!halfFloat) {
+      console.error('HALF_FLOAT not available');
+      return;
+    }
+    
+    let velocity = createDoubleFBO(simWidth, simHeight, gl.RG, halfFloat);
+    let density = createDoubleFBO(dyeWidth, dyeHeight, gl.RGB, halfFloat);
+    let pressure = createDoubleFBO(simWidth, simHeight, gl.RGB, halfFloat);
+    let divergence = createFBO(simWidth, simHeight, gl.RGB, halfFloat);
+    let curl = createFBO(simWidth, simHeight, gl.RGB, halfFloat);
     
     // Double FBO for ping-pong rendering
     function createDoubleFBO(width: number, height: number, format: number, type: number) {
