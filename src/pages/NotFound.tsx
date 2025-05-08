@@ -1,5 +1,10 @@
+
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import SplashCursor from "../components/SplashCursor";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 const NotFound = () => {
   const location = useLocation();
@@ -12,14 +17,29 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-600 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Return to Home
-        </a>
-      </div>
+    <div className="min-h-screen flex flex-col relative bg-black text-white">
+      {/* Background Fluid Animation */}
+      <SplashCursor />
+      
+      {/* Semi-transparent overlay for better readability */}
+      <div className="absolute inset-0 bg-black bg-opacity-60 z-0"></div>
+      
+      {/* Header */}
+      <Header />
+      
+      {/* Main Content */}
+      <main className="flex-grow flex items-center justify-center z-10 py-24">
+        <div className="text-center px-4">
+          <h1 className="text-6xl font-bold mb-4">404</h1>
+          <p className="text-xl text-gray-300 mb-8">Oops! Page not found</p>
+          <Link to="/" className="inline-block px-6 py-3 bg-genium-purple hover:bg-genium-purple-light text-white rounded-md transition-colors duration-300">
+            Return to Home
+          </Link>
+        </div>
+      </main>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };
