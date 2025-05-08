@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 
 interface HSVColor {
@@ -21,6 +22,8 @@ const SplashCursor: React.FC = () => {
   const VELOCITY_DISSIPATION = 1.5; // Reduced for more fluid movement
   const SPLAT_RADIUS = 0.25; // Slightly increased for more visible effects
   const COLOR_UPDATE_SPEED = 5; // Reduced for more subtle color transitions
+  const SPLAT_FORCE = 6000;
+  const CURL = 30; // Increased for more swirling effects
 
   function generateColor(): RGBColor {
     // Generate colors in the purple family based on #6F36E5
@@ -68,7 +71,6 @@ const SplashCursor: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Use a type assertion to make TypeScript happy with either WebGL context type
     const gl = (canvas.getContext('webgl') || canvas.getContext('webgl2')) as WebGLRenderingContext;
     if (!gl) {
       console.error('WebGL not supported');
@@ -349,7 +351,7 @@ const SplashCursor: React.FC = () => {
     const clearProgram = createProgram(baseVertexShader, clearFragmentShader);
     const pressureProgram = createProgram(baseVertexShader, pressureFragmentShader);
     const gradientSubtractProgram = createProgram(baseVertexShader, gradientSubtractFragmentShader);
-    const advectionProgram = createProgram(baseVertexShader, advectionFragmentShader);
+    const advectionProgram = createProgram(baseVertexShader, advectionShaderSource);
     const splatProgram = createProgram(baseVertexShader, splatFragmentShader);
 
     // Get uniform locations
@@ -486,45 +488,58 @@ const SplashCursor: React.FC = () => {
     }
 
     // Input handling
-    const pointers: { [key: string]: { id: number, x: number, y: number, dx: number, dy: number, down: boolean } } = {};
+    const pointers: { [key: string]: { id: number, x: number, y: number, dx: number, dy: number, down: boolean, moved: boolean, color: RGBColor } } = {};
+    pointers[0] = { id: -1, x: 0, y: 0, dx: 0, dy: 0, down: false, moved: false, color: generateColor() };
+    
     let lastUpdateTime = Date.now();
     let lastColorChangeTime = 0;
     let currentColor = generateColor();
     let targetColor = generateColor();
+    let animationStarted = false;
     
     function updatePointerDownData(id: number, x: number, y: number) {
-      pointers[id] = { id, x, y, dx: 0, dy: 0, down: true };
+      pointers[id] = { id, x, y, dx: 0, dy: 0, down: true, moved: false, color: generateColor() };
+      if (!animationStarted) {
+        animationStarted = true;
+        update();
+      }
     }
     
     function updatePointerMoveData(id: number, x: number, y: number) {
       if (!pointers[id]) return;
-      pointers[id].dx = x - pointers[id].x;
-      pointers[id].dy = y - pointers[id].y;
-      pointers[id].x = x;
-      pointers[id].y = y;
+      const pointer = pointers[id];
+      pointer.dx = x - pointer.x;
+      pointer.dy = y - pointer.y;
+      pointer.x = x;
+      pointer.y = y;
+      pointer.moved = Math.abs(pointer.dx) > 0 || Math.abs(pointer.dy) > 0;
     }
     
     function updatePointerUpData(id: number) {
       if (pointers[id]) pointers[id].down = false;
     }
     
+    // Scale based on device pixel ratio
+    function scaleByPixelRatio(input: number): number {
+      const pixelRatio = window.devicePixelRatio || 1;
+      return Math.floor(input * pixelRatio);
+    }
+    
+    // Event handlers
     const handlePointerDown = (e: MouseEvent | TouchEvent) => {
       if (e instanceof MouseEvent) {
         const rect = canvas.getBoundingClientRect();
-        updatePointerDownData(
-          -1,
-          (e.clientX - rect.left) / rect.width,
-          1.0 - (e.clientY - rect.top) / rect.height
-        );
+        const posX = scaleByPixelRatio(e.clientX - rect.left);
+        const posY = scaleByPixelRatio(e.clientY - rect.top);
+        updatePointerDownData(0, posX / canvas.width, 1.0 - posY / canvas.height);
+        clickSplat(pointers[0]);
       } else {
         for (let i = 0; i < e.targetTouches.length; i++) {
           const touch = e.targetTouches[i];
           const rect = canvas.getBoundingClientRect();
-          updatePointerDownData(
-            touch.identifier,
-            (touch.clientX - rect.left) / rect.width,
-            1.0 - (touch.clientY - rect.top) / rect.height
-          );
+          const posX = scaleByPixelRatio(touch.clientX - rect.left);
+          const posY = scaleByPixelRatio(touch.clientY - rect.top);
+          updatePointerDownData(touch.identifier, posX / canvas.width, 1.0 - posY / canvas.height);
         }
       }
     };
@@ -532,41 +547,29 @@ const SplashCursor: React.FC = () => {
     const handlePointerMove = (e: MouseEvent | TouchEvent) => {
       if (e instanceof MouseEvent) {
         const rect = canvas.getBoundingClientRect();
-        updatePointerMoveData(
-          -1,
-          (e.clientX - rect.left) / rect.width,
-          1.0 - (e.clientY - rect.top) / rect.height
-        );
+        const posX = scaleByPixelRatio(e.clientX - rect.left);
+        const posY = scaleByPixelRatio(e.clientY - rect.top);
+        updatePointerMoveData(0, posX / canvas.width, 1.0 - posY / canvas.height);
       } else {
         for (let i = 0; i < e.targetTouches.length; i++) {
           const touch = e.targetTouches[i];
           const rect = canvas.getBoundingClientRect();
-          updatePointerMoveData(
-            touch.identifier,
-            (touch.clientX - rect.left) / rect.width,
-            1.0 - (touch.clientY - rect.top) / rect.height
-          );
+          const posX = scaleByPixelRatio(touch.clientX - rect.left);
+          const posY = scaleByPixelRatio(touch.clientY - rect.top);
+          updatePointerMoveData(touch.identifier, posX / canvas.width, 1.0 - posY / canvas.height);
         }
       }
     };
     
     const handlePointerUp = (e: MouseEvent | TouchEvent) => {
       if (e instanceof MouseEvent) {
-        updatePointerUpData(-1);
+        updatePointerUpData(0);
       } else {
         for (let i = 0; i < e.changedTouches.length; i++) {
           updatePointerUpData(e.changedTouches[i].identifier);
         }
       }
     };
-    
-    // Add event listeners
-    canvas.addEventListener('mousedown', handlePointerDown);
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('mouseup', handlePointerUp);
-    canvas.addEventListener('touchstart', handlePointerDown);
-    window.addEventListener('touchmove', handlePointerMove);
-    window.addEventListener('touchend', handlePointerUp);
 
     // Blend colors smoothly
     function blendColors(color1: RGBColor, color2: RGBColor, factor: number): RGBColor {
@@ -575,6 +578,31 @@ const SplashCursor: React.FC = () => {
         g: color1.g + factor * (color2.g - color1.g),
         b: color1.b + factor * (color2.b - color1.b)
       };
+    }
+    
+    // Create splat effect when clicking
+    function clickSplat(pointer: { x: number, y: number }) {
+      const color = generateColor();
+      const dx = 10 * (Math.random() - 0.5);
+      const dy = 30 * (Math.random() - 0.5);
+      splat(pointer.x, pointer.y, dx, dy, color);
+    }
+
+    // Create splat effect
+    function splat(x: number, y: number, dx: number, dy: number, color: RGBColor) {
+      gl.useProgram(splatProgram);
+      gl.uniform1i(splatUniforms.uTarget, velocity.read.texture as unknown as number);
+      gl.uniform1f(splatUniforms.aspectRatio, canvas.width / canvas.height);
+      gl.uniform2f(splatUniforms.point, x, y);
+      gl.uniform3f(splatUniforms.color, dx * 10, dy * 10, 0);
+      gl.uniform1f(splatUniforms.radius, SPLAT_RADIUS);
+      blit(velocity.write.fbo);
+      velocity.swap();
+      
+      gl.uniform1i(splatUniforms.uTarget, density.read.texture as unknown as number);
+      gl.uniform3f(splatUniforms.color, color.r, color.g, color.b);
+      blit(density.write.fbo);
+      density.swap();
     }
 
     // Main rendering loop
@@ -597,13 +625,10 @@ const SplashCursor: React.FC = () => {
         const pointer = pointers[id];
         if (!pointer.down) continue;
         
-        if (pointer.dx !== 0 || pointer.dy !== 0) {
-          splat(pointer.x, pointer.y, pointer.dx, pointer.dy, currentColor);
+        if (pointer.moved) {
+          splat(pointer.x, pointer.y, pointer.dx * 10, pointer.dy * 10, currentColor);
+          pointer.moved = false;
         }
-        
-        // Reset delta to prevent continuous splatting at the same position
-        pointer.dx = 0;
-        pointer.dy = 0;
       }
       
       // Simulation step
@@ -626,7 +651,7 @@ const SplashCursor: React.FC = () => {
       gl.useProgram(vorticityProgram);
       gl.uniform1i(vorticityUniforms.uVelocity, velocity.read.texture as unknown as number);
       gl.uniform1i(vorticityUniforms.uCurl, curl.texture as unknown as number);
-      gl.uniform1f(vorticityUniforms.curl, 20);
+      gl.uniform1f(vorticityUniforms.curl, CURL);
       gl.uniform1f(vorticityUniforms.dt, dt);
       gl.uniform2fv(gl.getUniformLocation(vorticityProgram, 'texelSize'), texelSize);
       blit(velocity.write.fbo);
@@ -682,23 +707,6 @@ const SplashCursor: React.FC = () => {
       density.swap();
     }
 
-    // Create splat effect
-    function splat(x: number, y: number, dx: number, dy: number, color: RGBColor) {
-      gl.useProgram(splatProgram);
-      gl.uniform1i(splatUniforms.uTarget, velocity.read.texture as unknown as number);
-      gl.uniform1f(splatUniforms.aspectRatio, canvas.width / canvas.height);
-      gl.uniform2f(splatUniforms.point, x, y);
-      gl.uniform3f(splatUniforms.color, dx * 10, dy * 10, 0);
-      gl.uniform1f(splatUniforms.radius, SPLAT_RADIUS);
-      blit(velocity.write.fbo);
-      velocity.swap();
-      
-      gl.uniform1i(splatUniforms.uTarget, density.read.texture as unknown as number);
-      gl.uniform3f(splatUniforms.color, color.r, color.g, color.b);
-      blit(density.write.fbo);
-      density.swap();
-    }
-
     // Render to screen
     function render(target: WebGLFramebuffer | null) {
       gl.useProgram(displayProgram);
@@ -719,6 +727,14 @@ const SplashCursor: React.FC = () => {
         splat(x, y, dx, dy, color);
       }
     }
+    
+    // Add event listeners
+    canvas.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    canvas.addEventListener('touchstart', handlePointerDown);
+    window.addEventListener('touchmove', handlePointerMove, { passive: true });
+    window.addEventListener('touchend', handlePointerUp);
     
     // Start animation
     initSplats();

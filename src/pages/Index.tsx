@@ -20,13 +20,6 @@ const Index = () => {
       {/* Main Content */}
       <main className="flex-grow flex items-center justify-center z-10 py-24">
         <div className="container mx-auto px-4">
-          {/* Hero Section */}
-          <section className="mb-20 text-center max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Welcome to <span className="text-genium-purple">Genium Group</span>
-            </h1>
-          </section>
-          
           {/* Subsidiaries Section */}
           <section>
             <h2 className="text-2xl font-bold mb-8 text-center">Our Subsidiaries</h2>
