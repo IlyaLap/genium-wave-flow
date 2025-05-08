@@ -71,7 +71,7 @@ const SplashCursor: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const gl = (canvas.getContext('webgl') || canvas.getContext('webgl2')) as WebGLRenderingContext;
+    const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
     if (!gl) {
       console.error('WebGL not supported');
       return;
@@ -88,34 +88,42 @@ const SplashCursor: React.FC = () => {
     window.addEventListener('resize', setCanvasDimensions);
 
     // WebGL setup
-    const createShader = (type: number, source: string): WebGLShader => {
+    const createShader = (type: number, source: string): WebGLShader | null => {
       const shader = gl.createShader(type);
       if (!shader) {
-        throw new Error('Failed to create shader');
+        console.error('Failed to create shader');
+        return null;
       }
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(shader));
+        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
         gl.deleteShader(shader);
-        throw new Error('Failed to compile shader');
+        return null;
       }
       return shader;
     };
 
-    const createProgram = (vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram => {
+    const createProgram = (vertexShader: WebGLShader | null, fragmentShader: WebGLShader | null): WebGLProgram | null => {
+      if (!vertexShader || !fragmentShader) {
+        console.error('Invalid shaders');
+        return null;
+      }
+      
       const program = gl.createProgram();
       if (!program) {
-        throw new Error('Failed to create program');
+        console.error('Failed to create program');
+        return null;
       }
+      
       gl.attachShader(program, vertexShader);
       gl.attachShader(program, fragmentShader);
       gl.linkProgram(program);
       
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(program));
+        console.error('Program link error:', gl.getProgramInfoLog(program));
         gl.deleteProgram(program);
-        throw new Error('Failed to link program');
+        return null;
       }
       
       return program;
@@ -361,65 +369,37 @@ const SplashCursor: React.FC = () => {
       const advectionProgram = createProgram(baseVertexShader, advectionFragmentShader);
       const splatProgram = createProgram(baseVertexShader, splatFragmentShader);
 
+      // Check if any shaders failed to compile
+      if (!displayProgram || !baseProgram || !curlProgram || !vorticityProgram || 
+          !divergenceProgram || !clearProgram || !pressureProgram || 
+          !gradientSubtractProgram || !advectionProgram || !splatProgram) {
+        console.error("Failed to create WebGL programs");
+        return;
+      }
+
       // Get uniform locations
-      const displayUniforms = {
-        uTexture: gl.getUniformLocation(displayProgram, 'uTexture')
+      const getUniformLocations = (program: WebGLProgram, names: string[]): Record<string, WebGLUniformLocation | null> => {
+        const locations: Record<string, WebGLUniformLocation | null> = {};
+        for (const name of names) {
+          locations[name] = gl.getUniformLocation(program, name);
+        }
+        return locations;
       };
       
-      const baseUniforms = {
-        uTexture: gl.getUniformLocation(baseProgram, 'uTexture'),
-        uTime: gl.getUniformLocation(baseProgram, 'uTime')
-      };
-      
-      const curlUniforms = {
-        uVelocity: gl.getUniformLocation(curlProgram, 'uVelocity')
-      };
-      
-      const vorticityUniforms = {
-        uVelocity: gl.getUniformLocation(vorticityProgram, 'uVelocity'),
-        uCurl: gl.getUniformLocation(vorticityProgram, 'uCurl'),
-        curl: gl.getUniformLocation(vorticityProgram, 'curl'),
-        dt: gl.getUniformLocation(vorticityProgram, 'dt')
-      };
-      
-      const divergenceUniforms = {
-        uVelocity: gl.getUniformLocation(divergenceProgram, 'uVelocity')
-      };
-      
-      const clearUniforms = {
-        uTexture: gl.getUniformLocation(clearProgram, 'uTexture'),
-        value: gl.getUniformLocation(clearProgram, 'value')
-      };
-      
-      const pressureUniforms = {
-        uPressure: gl.getUniformLocation(pressureProgram, 'uPressure'),
-        uDivergence: gl.getUniformLocation(pressureProgram, 'uDivergence')
-      };
-      
-      const gradientSubtractUniforms = {
-        uPressure: gl.getUniformLocation(gradientSubtractProgram, 'uPressure'),
-        uVelocity: gl.getUniformLocation(gradientSubtractProgram, 'uVelocity')
-      };
-      
-      const advectionUniforms = {
-        uVelocity: gl.getUniformLocation(advectionProgram, 'uVelocity'),
-        uSource: gl.getUniformLocation(advectionProgram, 'uSource'),
-        texelSize: gl.getUniformLocation(advectionProgram, 'texelSize'),
-        dt: gl.getUniformLocation(advectionProgram, 'dt'),
-        dissipation: gl.getUniformLocation(advectionProgram, 'dissipation')
-      };
-      
-      const splatUniforms = {
-        uTarget: gl.getUniformLocation(splatProgram, 'uTarget'),
-        aspectRatio: gl.getUniformLocation(splatProgram, 'aspectRatio'),
-        point: gl.getUniformLocation(splatProgram, 'point'),
-        color: gl.getUniformLocation(splatProgram, 'color'),
-        radius: gl.getUniformLocation(splatProgram, 'radius')
-      };
+      const displayUniforms = getUniformLocations(displayProgram, ['uTexture']);
+      const baseUniforms = getUniformLocations(baseProgram, ['uTexture', 'uTime']);
+      const curlUniforms = getUniformLocations(curlProgram, ['uVelocity']);
+      const vorticityUniforms = getUniformLocations(vorticityProgram, ['uVelocity', 'uCurl', 'curl', 'dt']);
+      const divergenceUniforms = getUniformLocations(divergenceProgram, ['uVelocity']);
+      const clearUniforms = getUniformLocations(clearProgram, ['uTexture', 'value']);
+      const pressureUniforms = getUniformLocations(pressureProgram, ['uPressure', 'uDivergence']);
+      const gradientSubtractUniforms = getUniformLocations(gradientSubtractProgram, ['uPressure', 'uVelocity']);
+      const advectionUniforms = getUniformLocations(advectionProgram, ['uVelocity', 'uSource', 'texelSize', 'dt', 'dissipation']);
+      const splatUniforms = getUniformLocations(splatProgram, ['uTarget', 'aspectRatio', 'point', 'color', 'radius']);
 
       // Create framebuffers
       const framebuffers: WebGLFramebuffer[] = [];
-      const createFBO = (width: number, height: number, format: number, type: number): { texture: WebGLTexture, fbo: WebGLFramebuffer } => {
+      const createFBO = (width: number, height: number, format: number, type: number): { texture: WebGLTexture, fbo: WebGLFramebuffer, width: number, height: number, texelSizeX: number, texelSizeY: number, attach: (id: number) => number } => {
         const texture = gl.createTexture() as WebGLTexture;
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -435,7 +415,22 @@ const SplashCursor: React.FC = () => {
         gl.viewport(0, 0, width, height);
         gl.clear(gl.COLOR_BUFFER_BIT);
         
-        return { texture, fbo };
+        const texelSizeX = 1.0 / width;
+        const texelSizeY = 1.0 / height;
+        
+        return { 
+          texture, 
+          fbo, 
+          width, 
+          height, 
+          texelSizeX, 
+          texelSizeY,
+          attach: (id: number) => {
+            gl.activeTexture(gl.TEXTURE0 + id);
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            return id;
+          }
+        };
       };
       
       // Create uniform setter
@@ -463,38 +458,48 @@ const SplashCursor: React.FC = () => {
       const texelSizeY = 1.0 / simHeight;
       const texelSize = [texelSizeX, texelSizeY];
 
-      // Get the appropriate half float type based on WebGL version
-      const isWebGL2 = !!canvas.getContext('webgl2');
-      const halfFloat = isWebGL2 
-        ? (gl as WebGL2RenderingContext).HALF_FLOAT
-        : gl.getExtension('OES_texture_half_float')?.HALF_FLOAT_OES;
-      
-      // Make sure the halfFloat type exists
-      if (!halfFloat) {
-        console.error('HALF_FLOAT not available');
-        return;
-      }
-      
       // Always use RGBA for compatibility with WebGL1
+      const isWebGL2 = canvas.getContext('webgl2') !== null;
+      let halfFloat: number;
+      
+      if (isWebGL2) {
+        halfFloat = (gl as WebGL2RenderingContext).HALF_FLOAT;
+      } else {
+        const extension = gl.getExtension('OES_texture_half_float');
+        if (!extension) {
+          console.error('OES_texture_half_float not available');
+          return;
+        }
+        halfFloat = extension.HALF_FLOAT_OES;
+      }
+
+      // Double FBO for ping-pong rendering
+      const createDoubleFBO = (width: number, height: number, format: number, type: number) => {
+        let fbo1 = createFBO(width, height, format, type);
+        let fbo2 = createFBO(width, height, format, type);
+        
+        return {
+          width,
+          height,
+          texelSizeX: fbo1.texelSizeX,
+          texelSizeY: fbo1.texelSizeY,
+          get read() { return fbo1; },
+          set read(value) { fbo1 = value; },
+          get write() { return fbo2; },
+          set write(value) { fbo2 = value; },
+          swap() {
+            const temp = fbo1;
+            fbo1 = fbo2;
+            fbo2 = temp;
+          }
+        };
+      };
+      
       let velocity = createDoubleFBO(simWidth, simHeight, gl.RGBA, halfFloat);
       let density = createDoubleFBO(dyeWidth, dyeHeight, gl.RGBA, halfFloat);
       let pressure = createDoubleFBO(simWidth, simHeight, gl.RGBA, halfFloat);
       let divergence = createFBO(simWidth, simHeight, gl.RGBA, halfFloat);
       let curl = createFBO(simWidth, simHeight, gl.RGBA, halfFloat);
-      
-      // Double FBO for ping-pong rendering
-      function createDoubleFBO(width: number, height: number, format: number, type: number) {
-        let fbo1 = createFBO(width, height, format, type);
-        let fbo2 = createFBO(width, height, format, type);
-        
-        return {
-          get read() { return fbo1; },
-          get write() { return fbo2; },
-          swap() {
-            [fbo1, fbo2] = [fbo2, fbo1];
-          }
-        };
-      }
 
       // Input handling
       const pointers: { [key: string]: { id: number, x: number, y: number, dx: number, dy: number, down: boolean, moved: boolean, color: RGBColor } } = {};
@@ -600,16 +605,16 @@ const SplashCursor: React.FC = () => {
       // Create splat effect
       function splat(x: number, y: number, dx: number, dy: number, color: RGBColor) {
         gl.useProgram(splatProgram);
-        gl.uniform1i(splatUniforms.uTarget, velocity.read.texture as unknown as number);
-        gl.uniform1f(splatUniforms.aspectRatio, canvas.width / canvas.height);
-        gl.uniform2f(splatUniforms.point, x, y);
-        gl.uniform3f(splatUniforms.color, dx * 10, dy * 10, 0);
-        gl.uniform1f(splatUniforms.radius, SPLAT_RADIUS);
+        gl.uniform1i(splatUniforms['uTarget'], velocity.read.attach(0));
+        gl.uniform1f(splatUniforms['aspectRatio'], canvas.width / canvas.height);
+        gl.uniform2f(splatUniforms['point'], x, y);
+        gl.uniform3f(splatUniforms['color'], dx * 10, dy * 10, 0);
+        gl.uniform1f(splatUniforms['radius'], SPLAT_RADIUS);
         blit(velocity.write.fbo);
         velocity.swap();
         
-        gl.uniform1i(splatUniforms.uTarget, density.read.texture as unknown as number);
-        gl.uniform3f(splatUniforms.color, color.r, color.g, color.b);
+        gl.uniform1i(splatUniforms['uTarget'], density.read.attach(0));
+        gl.uniform3f(splatUniforms['color'], color.r, color.g, color.b);
         blit(density.write.fbo);
         density.swap();
       }
@@ -652,66 +657,66 @@ const SplashCursor: React.FC = () => {
         
         // Compute curl
         gl.useProgram(curlProgram);
-        gl.uniform1i(curlUniforms.uVelocity, velocity.read.texture as unknown as number);
+        gl.uniform1i(curlUniforms['uVelocity'], velocity.read.attach(0));
         gl.uniform2fv(gl.getUniformLocation(curlProgram, 'texelSize'), texelSize);
         blit(curl.fbo);
         
         // Apply vorticity
         gl.useProgram(vorticityProgram);
-        gl.uniform1i(vorticityUniforms.uVelocity, velocity.read.texture as unknown as number);
-        gl.uniform1i(vorticityUniforms.uCurl, curl.texture as unknown as number);
-        gl.uniform1f(vorticityUniforms.curl, CURL);
-        gl.uniform1f(vorticityUniforms.dt, dt);
+        gl.uniform1i(vorticityUniforms['uVelocity'], velocity.read.attach(0));
+        gl.uniform1i(vorticityUniforms['uCurl'], curl.attach(1));
+        gl.uniform1f(vorticityUniforms['curl'], CURL);
+        gl.uniform1f(vorticityUniforms['dt'], dt);
         gl.uniform2fv(gl.getUniformLocation(vorticityProgram, 'texelSize'), texelSize);
         blit(velocity.write.fbo);
         velocity.swap();
         
         // Compute divergence
         gl.useProgram(divergenceProgram);
-        gl.uniform1i(divergenceUniforms.uVelocity, velocity.read.texture as unknown as number);
+        gl.uniform1i(divergenceUniforms['uVelocity'], velocity.read.attach(0));
         gl.uniform2fv(gl.getUniformLocation(divergenceProgram, 'texelSize'), texelSize);
         blit(divergence.fbo);
         
         // Clear pressure
         gl.useProgram(clearProgram);
-        gl.uniform1i(clearUniforms.uTexture, pressure.read.texture as unknown as number);
-        gl.uniform1f(clearUniforms.value, 0);
+        gl.uniform1i(clearUniforms['uTexture'], pressure.read.attach(0));
+        gl.uniform1f(clearUniforms['value'], 0);
         blit(pressure.write.fbo);
         pressure.swap();
         
         // Pressure solver iterations
         gl.useProgram(pressureProgram);
-        gl.uniform1i(pressureUniforms.uDivergence, divergence.texture as unknown as number);
+        gl.uniform1i(pressureUniforms['uDivergence'], divergence.attach(0));
         gl.uniform2fv(gl.getUniformLocation(pressureProgram, 'texelSize'), texelSize);
         
         for (let i = 0; i < 20; i++) {
-          gl.uniform1i(pressureUniforms.uPressure, pressure.read.texture as unknown as number);
+          gl.uniform1i(pressureUniforms['uPressure'], pressure.read.attach(1));
           blit(pressure.write.fbo);
           pressure.swap();
         }
         
         // Apply pressure gradient
         gl.useProgram(gradientSubtractProgram);
-        gl.uniform1i(gradientSubtractUniforms.uPressure, pressure.read.texture as unknown as number);
-        gl.uniform1i(gradientSubtractUniforms.uVelocity, velocity.read.texture as unknown as number);
+        gl.uniform1i(gradientSubtractUniforms['uPressure'], pressure.read.attach(0));
+        gl.uniform1i(gradientSubtractUniforms['uVelocity'], velocity.read.attach(1));
         gl.uniform2fv(gl.getUniformLocation(gradientSubtractProgram, 'texelSize'), texelSize);
         blit(velocity.write.fbo);
         velocity.swap();
         
         // Advect velocity
         gl.useProgram(advectionProgram);
-        gl.uniform1i(advectionUniforms.uVelocity, velocity.read.texture as unknown as number);
-        gl.uniform1i(advectionUniforms.uSource, velocity.read.texture as unknown as number);
-        gl.uniform1f(advectionUniforms.dt, dt);
-        gl.uniform1f(advectionUniforms.dissipation, VELOCITY_DISSIPATION);
-        gl.uniform2fv(advectionUniforms.texelSize, texelSize);
+        gl.uniform1i(advectionUniforms['uVelocity'], velocity.read.attach(0));
+        gl.uniform1i(advectionUniforms['uSource'], velocity.read.attach(1));
+        gl.uniform1f(advectionUniforms['dt'], dt);
+        gl.uniform1f(advectionUniforms['dissipation'], VELOCITY_DISSIPATION);
+        gl.uniform2fv(advectionUniforms['texelSize'], texelSize);
         blit(velocity.write.fbo);
         velocity.swap();
         
         // Advect density
-        gl.uniform1i(advectionUniforms.uVelocity, velocity.read.texture as unknown as number);
-        gl.uniform1i(advectionUniforms.uSource, density.read.texture as unknown as number);
-        gl.uniform1f(advectionUniforms.dissipation, DENSITY_DISSIPATION);
+        gl.uniform1i(advectionUniforms['uVelocity'], velocity.read.attach(0));
+        gl.uniform1i(advectionUniforms['uSource'], density.read.attach(1));
+        gl.uniform1f(advectionUniforms['dissipation'], DENSITY_DISSIPATION);
         blit(density.write.fbo);
         density.swap();
       }
@@ -719,7 +724,7 @@ const SplashCursor: React.FC = () => {
       // Render to screen
       function render(target: WebGLFramebuffer | null) {
         gl.useProgram(displayProgram);
-        gl.uniform1i(displayUniforms.uTexture, density.read.texture as unknown as number);
+        gl.uniform1i(displayUniforms['uTexture'], density.read.attach(0));
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
         blit(target);
@@ -737,39 +742,43 @@ const SplashCursor: React.FC = () => {
         }
       }
       
-      // Add event listeners
+      // Add event listeners - make canvas respond to pointer events
       canvas.addEventListener('mousedown', handlePointerDown);
-      window.addEventListener('mousemove', handlePointerMove);
-      window.addEventListener('mouseup', handlePointerUp);
+      canvas.addEventListener('mousemove', handlePointerMove); // Changed from window to canvas
+      canvas.addEventListener('mouseup', handlePointerUp);
       canvas.addEventListener('touchstart', handlePointerDown);
-      window.addEventListener('touchmove', handlePointerMove, { passive: true });
-      window.addEventListener('touchend', handlePointerUp);
+      canvas.addEventListener('touchmove', handlePointerMove, { passive: true });
+      canvas.addEventListener('touchend', handlePointerUp);
+
+      // Automatic splats for subtle effects even without interaction
+      const createAutomaticSplat = () => {
+        if (Math.random() > 0.5) return;
+        
+        const x = Math.random();
+        const y = Math.random();
+        const dx = Math.random() * 2 - 1;
+        const dy = Math.random() * 2 - 1;
+        const color = generateColor();
+        
+        splat(x, y, dx, dy, color);
+      };
       
       // Start animation
       initSplats();
       update();
 
       // Create auto splats at random intervals
-      let autosplatInterval = setInterval(() => {
-        if (Math.random() < 0.5) {
-          const x = Math.random();
-          const y = Math.random();
-          const dx = Math.random() * 2 - 1;
-          const dy = Math.random() * 2 - 1;
-          const color = generateColor();
-          splat(x, y, dx, dy, color);
-        }
-      }, 2000);
+      const autosplatInterval = setInterval(createAutomaticSplat, 2000);
 
       // Cleanup function
       return () => {
         window.removeEventListener('resize', setCanvasDimensions);
         canvas.removeEventListener('mousedown', handlePointerDown);
-        window.removeEventListener('mousemove', handlePointerMove);
-        window.removeEventListener('mouseup', handlePointerUp);
+        canvas.removeEventListener('mousemove', handlePointerMove);
+        canvas.removeEventListener('mouseup', handlePointerUp);
         canvas.removeEventListener('touchstart', handlePointerDown);
-        window.removeEventListener('touchmove', handlePointerMove);
-        window.removeEventListener('touchend', handlePointerUp);
+        canvas.removeEventListener('touchmove', handlePointerMove);
+        canvas.removeEventListener('touchend', handlePointerUp);
         clearInterval(autosplatInterval);
         
         // Delete WebGL resources
