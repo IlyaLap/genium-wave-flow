@@ -1,0 +1,19 @@
+
+# Production context: all deploys from the Production branch set in your site's
+# deploy contexts will inherit these settings.
+[build]
+# Directory with the production build, this is the default build command
+command = "npm run build"
+# Directory with the built-in production code (the output directory of your build)
+publish = "dist"
+
+# Specific branch context: all deploys from this specific branch will inherit these settings
+[context.production]
+command = "npm run build"
+publish = "dist"
+
+# This handles SPA routing by redirecting all paths to index.html
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
