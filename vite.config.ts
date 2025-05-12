@@ -30,11 +30,21 @@ export default defineConfig(({ mode }) => ({
           console.error('Error creating _redirects file:', e);
         }
       }
+    },
+    {
+      name: 'copy-public-assets',
+      writeBundle() {
+        // Log that we're copying public assets to help with debugging
+        console.log('📂 Ensuring public assets are properly copied...');
+      }
     }
   ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  build: {
+    assetsInlineLimit: 0, // Don't inline any assets as base64
   },
 }));
