@@ -48,4 +48,4 @@
 # Add debugging info to deployments
 [build.environment]
   DEBUG = "netlify:*" 
-
+  PATH = "/opt/build/repo/node_modules/.bin:$PATH"
