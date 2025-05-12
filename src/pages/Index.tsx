@@ -18,8 +18,8 @@ const Index = () => {
       <Header />
       
       {/* Main Content */}
-      <main className="flex-grow flex items-center justify-center z-10 py-24">
-        <div className="container mx-auto px-4">
+      <main className="flex-grow flex items-center justify-center z-10 pt-24 pb-16 px-4">
+        <div className="container mx-auto">
           {/* Subsidiaries Section */}
           <section>
             <h2 className="text-2xl font-bold mb-8 text-center">Our Subsidiaries</h2>
@@ -28,7 +28,7 @@ const Index = () => {
               {/* Genium Sites Card */}
               <SubsidiaryCard 
                 title="Genium Sites" 
-                description="Genium Sites builds modern, high-converting websites with foundational SEO and clear value messaging. Enjoy fair pricing, fast turnaround, and a seamless development process—your trusted partner for effective web solutions."
+                description="Genium Sites builds modern, high-converting websites with foundational SEO and clear value messaging. Enjoy fair pricing, fast turnaround, and a seamless development process—your trusted partner for web solutions."
                 logoSrc="/lovable-uploads/02cba418-ba71-4ca8-af4e-ab16725a8790.png"
                 url="https://geniumsites.com"
               />

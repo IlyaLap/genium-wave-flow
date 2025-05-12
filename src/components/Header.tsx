@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 const Header: React.FC = () => {
   return (
-    <header className="fixed top-0 left-0 w-full z-10 bg-black bg-opacity-20 backdrop-blur-sm">
+    <header className="fixed top-0 left-0 right-0 w-full z-50 bg-black bg-opacity-20 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4">
         <Link to="/" className="flex items-center">
           <img 
