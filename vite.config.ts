@@ -30,7 +30,10 @@ export default defineConfig(({ mode }) => ({
   base: process.env.VITE_PUBLIC_URL || '/',
   
   plugins: [
-    react(),
+    react({
+      // Configure the React plugin properly
+      jsxImportSource: 'react'
+    }),
     // Only use componentTagger in development mode
     mode === 'development' && (() => {
       try {
