@@ -36,8 +36,8 @@ const Index = () => {
               {/* IVL Consulting Card */}
               <SubsidiaryCard 
                 title="IVL Consulting" 
-                description="Offering strategic business consulting and digital transformation services, IVL Consulting helps organizations navigate complex challenges and unlock new opportunities through innovative technology solutions."
-                logoSrc="/placeholder.svg"
+                description="IVL Consulting creates transformative Go-To-Market motions, with a clear 4-stage process of mapping, building, running and documenting the GTM function - your trusted partner for GTM engineering."
+                logoSrc="/lovable-uploads/76e7e9ea-7de1-40ee-9d23-2bb13aff898e.png"
                 url="https://ivl-consulting.com"
               />
             </div>
