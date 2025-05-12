@@ -4,11 +4,16 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from 'fs';
 
-// Simple plugin to copy Netlify configuration files
+// Simple plugin to ensure Netlify configuration files are copied to the build directory
 function copyNetlifyConfigPlugin() {
   return {
     name: 'copy-netlify-config',
     closeBundle: () => {
+      // Create dist directory if it doesn't exist
+      if (!fs.existsSync(path.resolve(__dirname, 'dist'))) {
+        fs.mkdirSync(path.resolve(__dirname, 'dist'), { recursive: true });
+      }
+      
       // Ensure _redirects file exists in the dist directory
       const redirectsContent = '/* /index.html 200';
       const redirectsPath = path.resolve(__dirname, 'dist', '_redirects');
@@ -16,8 +21,8 @@ function copyNetlifyConfigPlugin() {
       try {
         fs.writeFileSync(redirectsPath, redirectsContent);
         console.log('✅ Created _redirects file for Netlify deployment');
-      } catch (error) {
-        console.error('❌ Failed to create _redirects file:', error);
+      } catch (error: unknown) {
+        console.error('❌ Failed to create _redirects file:', (error as Error).message);
       }
     }
   };

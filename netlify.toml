@@ -3,7 +3,7 @@
 
 [build]
   publish = "dist"  # This is the folder that gets deployed (Vite default)
-  command = "npm ci && npm run build"  # Use npm ci for faster, reliable installs
+  command = "npm run build"  # Simplified build command, assumes dependencies are already installed
 
 # This is crucial for a React Router application
 # It ensures all routes redirect to index.html so your client-side router can handle them
@@ -17,6 +17,7 @@
   VITE_APP_ENV = "production"
   VITE_PUBLIC_URL = "/"
   NODE_ENV = "production"
+  CI = "true"  # Added to ensure builds are treated as CI
 
 [context.deploy-preview.environment]
   VITE_APP_ENV = "preview"
@@ -45,6 +46,7 @@
     Cache-Control = "public, max-age=31536000"
     Access-Control-Allow-Origin = "*"
 
-# Add debugging info to deployments
+# Add debugging info to deployments and specify Node version
 [build.environment]
   NODE_VERSION = "18"
+  NPM_FLAGS = "--no-audit --no-optional"  # Make npm installs more reliable
