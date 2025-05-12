@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { getAssetPath } from '../utils/assetUtils';
 
 interface SubsidiaryCardProps {
   title: string;
@@ -16,10 +16,24 @@ const SubsidiaryCard: React.FC<SubsidiaryCardProps> = ({
   logoSrc,
   url
 }) => {
+  // Ensure the logo path is correctly resolved
+  const resolvedLogoSrc = logoSrc.startsWith('lovable-uploads/') 
+    ? logoSrc 
+    : `lovable-uploads/${logoSrc}`;
+
   return (
     <div className="bg-black bg-opacity-40 backdrop-blur-md rounded-lg p-6 border border-gray-800 hover:border-genium-purple transition-all duration-300 animate-fade-in flex flex-col h-full">
       <div className="flex items-center mb-4">
-        <img src={logoSrc} alt={`${title} logo`} className="w-12 h-12 mr-3" />
+        <img 
+          src={getAssetPath(resolvedLogoSrc)} 
+          alt={`${title} logo`} 
+          className="w-12 h-12 mr-3"
+          onError={(e) => {
+            console.error(`Failed to load image: ${logoSrc}`);
+            // Add fallback behavior
+            e.currentTarget.style.opacity = '0.5';
+          }} 
+        />
         <h3 className="text-white text-xl font-bold">{title}</h3>
       </div>
       

@@ -4,6 +4,35 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// Diagnostic function to check for common issues
+const runDiagnostics = () => {
+  console.log("=== Running startup diagnostics ===");
+  
+  // Check for the root element
+  const rootElement = document.getElementById('root');
+  console.log("Root element exists:", !!rootElement);
+  
+  // Check for WebGL support
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
+    console.log("WebGL supported:", !!gl);
+  } catch (e) {
+    console.log("WebGL check failed:", e);
+  }
+  
+  // Check for routing
+  console.log("Current URL:", window.location.href);
+  console.log("Current pathname:", window.location.pathname);
+  
+  // Check for environment variables
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  console.log("=== End diagnostics ===");
+};
+
+// Run diagnostics before mounting the app
+runDiagnostics();
+
 // Use this pattern to properly render the app with React 18
 // Wrap in a try/catch to help debug any initialization errors that might occur
 try {
