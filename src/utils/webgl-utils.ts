@@ -56,6 +56,7 @@ export interface FluidConfig {
   BACK_COLOR: { r: number; g: number; b: number };
   TRANSPARENT: boolean;
   PAUSED?: boolean;
+  COLORFUL?: boolean;
 }
 
 export interface PointerState {
@@ -69,6 +70,11 @@ export interface PointerState {
   down: boolean;
   moved: boolean;
   color: number[];
+  // Additional properties used in fluid-engine.ts
+  x?: number;
+  y?: number;
+  dx?: number;
+  dy?: number;
 }
 
 export function getWebGLContext(canvas: HTMLCanvasElement): {
@@ -270,5 +276,9 @@ export function createPointerPrototype(): PointerState {
     down: false,
     moved: false,
     color: [0, 0, 0],
+    x: 0,
+    y: 0,
+    dx: 0,
+    dy: 0,
   };
 }

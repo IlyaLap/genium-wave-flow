@@ -271,7 +271,9 @@ export class FluidEngine {
     this.pointers.forEach(p => {
       if (p.moved) {
         p.moved = false;
-        this.splat(p.x, p.y, p.dx, p.dy, p.color);
+        if (p.x !== undefined && p.y !== undefined && p.dx !== undefined && p.dy !== undefined) {
+          this.splat(p.x, p.y, p.dx, p.dy, p.color);
+        }
       }
     });
   }
@@ -412,8 +414,14 @@ export class FluidEngine {
 
   public addPointerInteraction() {
     const canvas = this.canvas;
-    let pointer = {
+    let pointer: PointerState = {
       id: -1,
+      texcoordX: 0,
+      texcoordY: 0,
+      prevTexcoordX: 0,
+      prevTexcoordY: 0,
+      deltaX: 0,
+      deltaY: 0,
       x: 0,
       y: 0,
       dx: 0,
@@ -430,8 +438,8 @@ export class FluidEngine {
       let py = pointer.y;
       pointer.x = e.offsetX;
       pointer.y = e.offsetY;
-      pointer.dx = (pointer.x - px) * 8.0;
-      pointer.dy = (pointer.y - py) * 8.0;
+      pointer.dx = (pointer.x - px!) * 8.0;
+      pointer.dy = (pointer.y - py!) * 8.0;
       pointer.moved = true;
     });
 
@@ -453,8 +461,8 @@ export class FluidEngine {
       let py = pointer.y;
       pointer.x = touch.clientX;
       pointer.y = touch.clientY;
-      pointer.dx = (pointer.x - px) * 8.0;
-      pointer.dy = (pointer.y - py) * 8.0;
+      pointer.dx = (pointer.x - px!) * 8.0;
+      pointer.dy = (pointer.y - py!) * 8.0;
       pointer.moved = true;
     });
 
