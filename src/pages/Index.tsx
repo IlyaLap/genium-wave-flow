@@ -4,7 +4,6 @@ import { SplashCursor } from '../components/SplashCursor';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SubsidiaryCard from '../components/SubsidiaryCard';
-import { MAIN_ASSETS } from '../utils/assetUtils';
 
 const Index = () => {
   return (
@@ -30,7 +29,7 @@ const Index = () => {
               <SubsidiaryCard 
                 title="Genium Sites" 
                 description="Genium Sites builds modern, high-converting websites with foundational SEO and clear value messaging. Enjoy fair pricing, fast turnaround, and a seamless development process—your trusted partner for web solutions."
-                logoSrc={MAIN_ASSETS.subsidiaryLogo1}
+                logoSrc="/lovable-uploads/02cba418-ba71-4ca8-af4e-ab16725a8790.png"
                 url="https://geniumsites.com"
               />
               
@@ -38,7 +37,7 @@ const Index = () => {
               <SubsidiaryCard 
                 title="IVL Consulting" 
                 description="IVL Consulting creates transformative Go-To-Market motions, with a clear 4-stage process of mapping, building, running and documenting the GTM function - your trusted partner for GTM engineering."
-                logoSrc={MAIN_ASSETS.subsidiaryLogo2}
+                logoSrc="/lovable-uploads/76e7e9ea-7de1-40ee-9d23-2bb13aff898e.png"
                 url="https://ivl-consulting.com"
               />
             </div>

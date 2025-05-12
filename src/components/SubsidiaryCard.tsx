@@ -1,7 +1,7 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { getImagePath } from '../utils/assetUtils';
 
 interface SubsidiaryCardProps {
   title: string;
@@ -19,23 +19,7 @@ const SubsidiaryCard: React.FC<SubsidiaryCardProps> = ({
   return (
     <div className="bg-black bg-opacity-40 backdrop-blur-md rounded-lg p-6 border border-gray-800 hover:border-genium-purple transition-all duration-300 animate-fade-in flex flex-col h-full">
       <div className="flex items-center mb-4">
-        <img 
-          src={getImagePath(logoSrc)}
-          alt={`${title} logo`} 
-          className="w-12 h-12 mr-3"
-          onError={(e) => {
-            console.error(`Failed to load image: ${logoSrc}`);
-            // Add fallback behavior - show first letter of title in a colored circle
-            e.currentTarget.style.display = 'none';
-            const parent = e.currentTarget.parentElement;
-            if (parent) {
-              const fallback = document.createElement('div');
-              fallback.className = 'w-12 h-12 mr-3 rounded-full bg-genium-purple flex items-center justify-center text-white font-bold text-xl';
-              fallback.textContent = title.charAt(0);
-              parent.insertBefore(fallback, e.currentTarget);
-            }
-          }} 
-        />
+        <img src={logoSrc} alt={`${title} logo`} className="w-12 h-12 mr-3" />
         <h3 className="text-white text-xl font-bold">{title}</h3>
       </div>
       

@@ -32,7 +32,7 @@ const NotFound = () => {
         <div className="text-center px-4">
           <h1 className="text-6xl font-bold mb-4">404</h1>
           <p className="text-xl text-gray-300 mb-8">Oops! Page not found</p>
-          <Link to="/" className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors duration-300">
+          <Link to="/" className="inline-block px-6 py-3 bg-genium-purple hover:bg-genium-purple-light text-white rounded-md transition-colors duration-300">
             Return to Home
           </Link>
         </div>
