@@ -28,8 +28,8 @@ const Index = () => {
               {/* Genium Sites Card */}
               <SubsidiaryCard 
                 title="Genium Sites" 
-                description="Specializing in web development and digital experiences, Genium Sites creates stunning, responsive websites optimized for performance and user engagement. Our approach combines aesthetic design with technical excellence."
-                logoSrc="/placeholder.svg"
+                description="Genium Sites builds modern, high-converting websites with foundational SEO and clear value messaging. Enjoy fair pricing, fast turnaround, and a seamless development process—your trusted partner for effective web solutions."
+                logoSrc="/lovable-uploads/02cba418-ba71-4ca8-af4e-ab16725a8790.png"
                 url="https://geniumsites.com"
               />
               
