@@ -3,7 +3,7 @@
 
 [build]
   publish = "dist"  # This is the folder that gets deployed (Vite default)
-  command = "npm install --legacy-peer-deps && npm run build"  # Use legacy-peer-deps flag to handle dependency conflicts
+  command = "npm ci && npm run build"  # Using npm ci for more reliable installs
 
 # This is crucial for a React Router application
 # It ensures all routes redirect to index.html so your client-side router can handle them
@@ -12,7 +12,7 @@
   to = "/index.html"
   status = 200
 
-# Environment variable configuration - add debug flags
+# Environment variable configuration
 [context.production.environment]
   VITE_APP_ENV = "production"
   VITE_PUBLIC_URL = "/"
@@ -47,5 +47,4 @@
 
 # Add debugging info to deployments
 [build.environment]
-  DEBUG = "netlify:*" 
-  PATH = "/opt/build/repo/node_modules/.bin:$PATH"
+  NODE_VERSION = "18"
