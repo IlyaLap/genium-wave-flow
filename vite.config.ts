@@ -38,8 +38,28 @@ export default defineConfig(({ mode }) => ({
             fs.copyFileSync('public/sitemap.xml', 'dist/sitemap.xml');
             console.log('✅ Copied sitemap.xml to dist folder');
           }
+          
+          // Ensure favicon is copied to the dist folder
+          const faviconSources = [
+            'public/lovable-uploads/3ed4d1d7-a481-4832-b144-81e6d655a8c8.png'
+          ];
+          
+          faviconSources.forEach(source => {
+            if (fs.existsSync(source)) {
+              const dest = `dist/${source.replace('public/', '')}`;
+              // Ensure directory exists
+              const dir = path.dirname(dest);
+              if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+              }
+              fs.copyFileSync(source, dest);
+              console.log(`✅ Copied favicon from ${source} to ${dest}`);
+            } else {
+              console.warn(`⚠️ Favicon source not found: ${source}`);
+            }
+          });
         } catch (e) {
-          console.error('Error creating _redirects file:', e);
+          console.error('Error in build process:', e);
         }
       }
     },
@@ -58,5 +78,13 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     assetsInlineLimit: 0, // Don't inline any assets as base64
+    rollupOptions: {
+      // Ensure assets in the public folder are correctly handled
+      onwarn(warning, warn) {
+        // Suppress specific warnings if needed
+        if (warning.code === 'MISSING_EXPORT') return;
+        warn(warning);
+      }
+    }
   },
 }));
