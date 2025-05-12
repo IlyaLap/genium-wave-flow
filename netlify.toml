@@ -48,3 +48,4 @@
 # Add debugging info to deployments
 [build.environment]
   DEBUG = "netlify:*" 
+
