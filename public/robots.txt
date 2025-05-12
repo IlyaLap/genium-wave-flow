@@ -1,8 +1,11 @@
+
 User-agent: Googlebot
 Allow: /
+Sitemap: https://yourwebsite.com/sitemap.xml
 
 User-agent: Bingbot
 Allow: /
+Sitemap: https://yourwebsite.com/sitemap.xml
 
 User-agent: Twitterbot
 Allow: /
@@ -12,3 +15,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+Sitemap: https://yourwebsite.com/sitemap.xml
+

@@ -26,6 +26,18 @@ export default defineConfig(({ mode }) => ({
           }
           fs.writeFileSync('dist/_redirects', '/* /index.html 200');
           console.log('✅ Created _redirects file for Netlify SPA routing');
+          
+          // Copy robots.txt to dist if it exists in public
+          if (fs.existsSync('public/robots.txt')) {
+            fs.copyFileSync('public/robots.txt', 'dist/robots.txt');
+            console.log('✅ Copied robots.txt to dist folder');
+          }
+          
+          // Copy sitemap.xml to dist if it exists in public
+          if (fs.existsSync('public/sitemap.xml')) {
+            fs.copyFileSync('public/sitemap.xml', 'dist/sitemap.xml');
+            console.log('✅ Copied sitemap.xml to dist folder');
+          }
         } catch (e) {
           console.error('Error creating _redirects file:', e);
         }
