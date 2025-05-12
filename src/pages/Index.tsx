@@ -1,6 +1,6 @@
 
 import React from 'react';
-import SplashCursor from '../components/SplashCursor';
+import { SplashCursor } from '../components/SplashCursor';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SubsidiaryCard from '../components/SubsidiaryCard';
