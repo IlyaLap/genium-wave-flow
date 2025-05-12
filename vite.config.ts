@@ -10,19 +10,38 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  
+  // Optimized build configuration
   build: {
     outDir: "dist",
-    sourcemap: true,
+    sourcemap: mode === 'development', // Only generate sourcemaps in development
     minify: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor code for better caching
+          vendor: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
+          ui: ['@/components/ui'],
+        },
+      },
+    },
   },
+  
+  // Base path configuration - this is critical for routing
+  base: '/',
+  
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    // Only use componentTagger in development mode
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
+  
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  
+  // Explicitly define environment variable handling
+  envPrefix: 'VITE_',
 }));

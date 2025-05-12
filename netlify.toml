@@ -1,0 +1,30 @@
+
+# This file tells Netlify how to build and deploy your React application
+
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+# This is crucial for a React Router application
+# It ensures all routes redirect to index.html so your client-side router can handle them
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variable configuration example
+# You can also set these in the Netlify UI
+[context.production.environment]
+  VITE_APP_ENV = "production"
+
+[context.deploy-preview.environment]
+  VITE_APP_ENV = "preview"
+
+# Optional: Configure headers for security, caching, etc.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer-when-downgrade"
