@@ -3,6 +3,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { runInitialDiagnostics } from './utils/diagnosticUtils'
 
 // Enhanced diagnostic function to check for common issues
 const runDiagnostics = () => {
@@ -79,59 +80,72 @@ const runDiagnostics = () => {
   };
 };
 
-// Enhanced visual error component
+// Enhanced visual error component with better retry options
 const createVisualError = (error: unknown) => {
-  // Only show in development or if explicitly enabled for debugging
-  if (process.env.NODE_ENV !== 'production' || localStorage.getItem('showErrors') === 'true') {
-    const errorElement = document.createElement('div');
-    errorElement.style.position = 'fixed';
-    errorElement.style.bottom = '0';
-    errorElement.style.left = '0';
-    errorElement.style.right = '0';
-    errorElement.style.padding = '1rem';
-    errorElement.style.backgroundColor = 'rgba(220, 38, 38, 0.9)';
-    errorElement.style.color = 'white';
-    errorElement.style.zIndex = '9999';
-    errorElement.style.fontFamily = 'monospace';
-    errorElement.style.fontSize = '14px';
-    
-    // Add more detailed error information
-    const errorMessage = error instanceof Error ? 
-      `${error.name}: ${error.message}` : 
-      String(error);
-    
-    const stackInfo = error instanceof Error && error.stack ? 
-      `<details>
-        <summary>View Stack Trace</summary>
-        <pre style="overflow-x: auto; padding: 0.5rem; background: rgba(0,0,0,0.5);">${error.stack}</pre>
-       </details>` : 
-      '';
-    
-    errorElement.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong>Runtime Error:</strong>
-        <button id="dismiss-error" style="background: white; color: black; border: none; border-radius: 4px; padding: 4px 8px;">Dismiss</button>
-      </div>
-      <div style="margin-top: 0.5rem;">
-        ${errorMessage}
-        ${stackInfo}
-      </div>
-    `;
-    
-    document.body.appendChild(errorElement);
-    
-    // Add event listener to dismiss button
-    document.getElementById('dismiss-error')?.addEventListener('click', () => {
-      document.body.removeChild(errorElement);
-    });
-    
-    return errorElement;
-  }
-  return null;
+  // Display for any environment to help debug deployment issues
+  const errorElement = document.createElement('div');
+  errorElement.style.position = 'fixed';
+  errorElement.style.bottom = '0';
+  errorElement.style.left = '0';
+  errorElement.style.right = '0';
+  errorElement.style.padding = '1rem';
+  errorElement.style.backgroundColor = 'rgba(220, 38, 38, 0.9)';
+  errorElement.style.color = 'white';
+  errorElement.style.zIndex = '9999';
+  errorElement.style.fontFamily = 'monospace';
+  errorElement.style.fontSize = '14px';
+  
+  // Add more detailed error information
+  const errorMessage = error instanceof Error ? 
+    `${error.name}: ${error.message}` : 
+    String(error);
+  
+  const stackInfo = error instanceof Error && error.stack ? 
+    `<details>
+      <summary>View Stack Trace</summary>
+      <pre style="overflow-x: auto; padding: 0.5rem; background: rgba(0,0,0,0.5);">${error.stack}</pre>
+     </details>` : 
+    '';
+  
+  errorElement.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <strong>Runtime Error:</strong>
+      <button id="dismiss-error" style="background: white; color: black; border: none; border-radius: 4px; padding: 4px 8px;">Dismiss</button>
+    </div>
+    <div style="margin-top: 0.5rem;">
+      ${errorMessage}
+      ${stackInfo}
+    </div>
+    <div style="margin-top: 0.5rem; display: flex; gap: 8px;">
+      <button id="try-fallback" style="background: #2563eb; color: white; border: none; border-radius: 4px; padding: 4px 8px;">Try Fallback Mode</button>
+      <button id="try-clear-cache" style="background: #4b5563; color: white; border: none; border-radius: 4px; padding: 4px 8px;">Clear Cache & Reload</button>
+    </div>
+  `;
+  
+  document.body.appendChild(errorElement);
+  
+  // Add event listeners to buttons
+  document.getElementById('dismiss-error')?.addEventListener('click', () => {
+    document.body.removeChild(errorElement);
+  });
+  
+  document.getElementById('try-fallback')?.addEventListener('click', () => {
+    window.location.href = '/?forceFallback=true&skipPreloader=true';
+  });
+  
+  document.getElementById('try-clear-cache')?.addEventListener('click', () => {
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          caches.delete(name);
+        });
+      });
+    }
+    window.location.reload(true);
+  });
+  
+  return errorElement;
 };
-
-// Run diagnostics before mounting the app
-const diagnosticResults = runDiagnostics();
 
 // Function to create a fallback UI if the app fails to mount
 const createFallbackUI = (error: unknown) => {
@@ -150,18 +164,29 @@ const createFallbackUI = (error: unknown) => {
           <li>Clear your browser cache</li>
           <li>Try a different browser</li>
         </ul>
-        <div style="margin-top: 2rem;">
-          <button onclick="window.location.reload()" style="background: #2196f3; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+        <div style="margin-top: 2rem; display: flex; gap: 8px;">
+          <button onclick="window.location.reload(true)" style="background: #2196f3; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
             Refresh Page
           </button>
-          <button onclick="window.location.href='/?skipPreloader=true'" style="background: transparent; border: 1px solid #2196f3; color: #2196f3; padding: 0.5rem 1rem; border-radius: 4px; margin-left: 0.5rem; cursor: pointer;">
+          <button onclick="window.location.href='/?skipPreloader=true'" style="background: transparent; border: 1px solid #2196f3; color: #2196f3; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
             Skip Preloader
           </button>
+          <button onclick="window.location.href='/?forceFallback=true'" style="background: #9c27b0; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+            Fallback Mode
+          </button>
+        </div>
+        <div style="margin-top: 1rem; font-size: 12px; color: #666;">
+          Environment: ${import.meta.env.MODE} | URL: ${window.location.href}
         </div>
       </div>
     `;
   }
 };
+
+// Run the comprehensive diagnostic utilities
+if (import.meta.env.PROD) {
+  runInitialDiagnostics();
+}
 
 // Use this pattern to properly render the app with React 18
 // Wrap in a try/catch to help debug any initialization errors that might occur
@@ -171,6 +196,9 @@ try {
   if (!rootElement) {
     throw new Error('Failed to find the root element. The page structure may be incorrect.')
   }
+  
+  // Run basic diagnostics
+  const diagnosticResults = runDiagnostics();
   
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
@@ -197,5 +225,27 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 // Make diagnostics data available globally for debugging
-(window as any).__appDiagnostics = diagnosticResults;
+(window as any).__appDiagnostics = runDiagnostics();
 
+// Add event listener for when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM fully loaded and parsed');
+  
+  // Check if the page content is visible
+  setTimeout(() => {
+    const hasVisibleContent = document.body.offsetHeight > 0;
+    console.log('Page has visible content:', hasVisibleContent);
+    
+    // If there's no visible content after 2 seconds, try to recover
+    setTimeout(() => {
+      const stillNoContent = document.body.offsetHeight === 0 || 
+                            !document.querySelector('main') ||
+                            window.getComputedStyle(document.body).display === 'none';
+                            
+      if (stillNoContent && !window.location.search.includes('forceFallback')) {
+        console.error('No visible content detected, attempting recovery');
+        window.location.href = '/?forceFallback=true&skipPreloader=true';
+      }
+    }, 2000);
+  }, 1000);
+});

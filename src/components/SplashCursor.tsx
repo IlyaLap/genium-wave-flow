@@ -36,10 +36,11 @@ export function SplashCursor({
       try {
         // Try WebGL2 first
         let gl = canvas.getContext("webgl2");
+        
         if (!gl) {
-          // Fall back to WebGL 1
-          gl = canvas.getContext("webgl") || 
-               canvas.getContext("experimental-webgl") as WebGLRenderingContext;
+          // Fall back to WebGL 1 with proper type handling
+          gl = (canvas.getContext("webgl") || 
+               canvas.getContext("experimental-webgl")) as WebGLRenderingContext | null;
         }
         
         if (!gl) {

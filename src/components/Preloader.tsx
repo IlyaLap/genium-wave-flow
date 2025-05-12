@@ -13,11 +13,13 @@ const Preloader: React.FC<PreloaderProps> = ({ children }) => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [diagnosticResults, setDiagnosticResults] = useState<Record<string, boolean> | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Add URL parameters to control behavior
   // e.g. ?skipPreloader=true to bypass preloading
   const searchParams = new URLSearchParams(window.location.search);
   const skipPreloader = searchParams.get('skipPreloader') === 'true';
+  const forceFallback = searchParams.get('forceFallback') === 'true';
 
   useEffect(() => {
     if (skipPreloader) {
@@ -43,6 +45,14 @@ const Preloader: React.FC<PreloaderProps> = ({ children }) => {
     // Start preloading critical assets
     const loadAssets = async () => {
       try {
+        // Log environment information for debugging
+        console.log('Preloader environment:');
+        console.log('- NODE_ENV:', process.env.NODE_ENV);
+        console.log('- VITE_MODE:', import.meta.env.MODE);
+        console.log('- VITE_BASE_URL:', import.meta.env.BASE_URL);
+        console.log('- VITE_PUBLIC_URL:', import.meta.env.VITE_PUBLIC_URL);
+        console.log('- Window Location:', window.location.href);
+        
         // Run diagnostics first
         const { success, results } = await runAssetDiagnostics();
         if (isMounted) {
@@ -64,12 +74,20 @@ const Preloader: React.FC<PreloaderProps> = ({ children }) => {
         console.error('Error in preloading assets:', err);
         if (isMounted) {
           setLoadError(`Error loading assets: ${err instanceof Error ? err.message : 'Unknown error'}`);
-          // Continue anyway after a short delay
-          setTimeout(() => {
-            if (isMounted) {
-              setIsLoading(false);
-            }
-          }, 1000);
+          
+          // Allow retry if we haven't retried too many times
+          if (retryCount < 2) {
+            console.log(`Retrying asset loading (attempt ${retryCount + 1})`);
+            setRetryCount(prev => prev + 1);
+            setTimeout(() => loadAssets(), 1500);
+          } else {
+            // Continue anyway after exhausting retries
+            setTimeout(() => {
+              if (isMounted) {
+                setIsLoading(false);
+              }
+            }, 1000);
+          }
         }
       }
     };
@@ -82,14 +100,26 @@ const Preloader: React.FC<PreloaderProps> = ({ children }) => {
       if (isMounted) {
         setIsLoading(false);
       }
-    }, 5000); // 5 seconds max loading time
+    }, 10000); // 10 seconds max loading time (increased from 5s)
     
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
       console.error = originalError;
     };
-  }, [skipPreloader]);
+  }, [skipPreloader, retryCount]);
+
+  // Helper function to get environment info for diagnostics
+  const getEnvironmentInfo = () => {
+    return {
+      mode: import.meta.env.MODE || 'unknown',
+      baseUrl: import.meta.env.BASE_URL || '/',
+      publicUrl: import.meta.env.VITE_PUBLIC_URL || '/',
+      host: window.location.host,
+      pathname: window.location.pathname,
+      href: window.location.href,
+    };
+  };
 
   if (isLoading) {
     return (
@@ -108,31 +138,48 @@ const Preloader: React.FC<PreloaderProps> = ({ children }) => {
             {showDiagnostics ? 'Hide Diagnostics' : 'Show Diagnostics'}
           </Button>
           
-          {showDiagnostics && diagnosticResults && (
-            <div className="mt-4 bg-black bg-opacity-70 p-4 rounded-md text-xs">
+          {showDiagnostics && (
+            <div className="mt-4 bg-black bg-opacity-70 p-4 rounded-md text-xs max-w-sm overflow-auto max-h-60">
               <h4 className="text-white font-semibold mb-2">Asset Check Results:</h4>
-              <ul className="text-white">
-                {Object.entries(diagnosticResults).map(([key, success]) => (
-                  <li key={key} className={success ? "text-green-400" : "text-red-400"}>
-                    {key}: {success ? "✓" : "✗"}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2 text-gray-400">
-                Env: {import.meta.env.MODE || 'unknown'}
-                {import.meta.env.VITE_PUBLIC_URL && `, Base: ${import.meta.env.VITE_PUBLIC_URL}`}
-              </p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2" 
-                onClick={() => {
-                  setShowDiagnostics(false);
-                  setIsLoading(false);
-                }}
-              >
-                Skip Preloading
-              </Button>
+              {diagnosticResults ? (
+                <ul className="text-white">
+                  {Object.entries(diagnosticResults).map(([key, success]) => (
+                    <li key={key} className={success ? "text-green-400" : "text-red-400"}>
+                      {key}: {success ? "✓" : "✗"}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-400">Running diagnostics...</p>
+              )}
+              
+              <h4 className="text-white font-semibold mt-3 mb-2">Environment:</h4>
+              {Object.entries(getEnvironmentInfo()).map(([key, value]) => (
+                <p key={key} className="text-gray-400 break-all">
+                  {key}: {String(value)}
+                </p>
+              ))}
+              
+              <div className="mt-4 flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setIsLoading(false);
+                  }}
+                >
+                  Continue Anyway
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    window.location.href = '/?skipPreloader=true';
+                  }}
+                >
+                  Skip Preloader
+                </Button>
+              </div>
             </div>
           )}
         </div>

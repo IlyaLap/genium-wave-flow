@@ -12,16 +12,17 @@
   to = "/index.html"
   status = 200
 
-# Environment variable configuration
+# Environment variable configuration - add debug flags
 [context.production.environment]
   VITE_APP_ENV = "production"
   VITE_PUBLIC_URL = "/"
+  NODE_ENV = "production"
 
 [context.deploy-preview.environment]
   VITE_APP_ENV = "preview"
   VITE_PUBLIC_URL = "/"
 
-# Optional: Configure headers for security, caching, etc.
+# Configure headers for security, caching, etc.
 [[headers]]
   for = "/*"
   [headers.values]
@@ -37,9 +38,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Special headers for Lovable uploads
 [[headers]]
   for = "/lovable-uploads/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000"
     Access-Control-Allow-Origin = "*"
 
+# Add debugging info to deployments
+[build.environment]
+  DEBUG = "netlify:*" 

@@ -77,8 +77,11 @@ export interface PointerState {
   dy?: number;
 }
 
+// Define a unified WebGL context type to handle both WebGL1 and WebGL2
+export type UnifiedWebGLContext = WebGLRenderingContext | WebGL2RenderingContext;
+
 export function getWebGLContext(canvas: HTMLCanvasElement): {
-  gl: WebGLRenderingContext | WebGL2RenderingContext;
+  gl: UnifiedWebGLContext;
   ext: {
     formatRGBA: { internalFormat: number; format: number } | null;
     formatRG: { internalFormat: number; format: number } | null;
@@ -95,11 +98,12 @@ export function getWebGLContext(canvas: HTMLCanvasElement): {
     preserveDrawingBuffer: false,
   };
   
-  // Fix: Properly handle the WebGL context types
-  let gl: WebGLRenderingContext | WebGL2RenderingContext | null = canvas.getContext("webgl2", params) as WebGL2RenderingContext | null;
+  // First try WebGL2
+  let gl: UnifiedWebGLContext | null = canvas.getContext("webgl2", params);
   const isWebGL2 = !!gl;
   
-  if (!isWebGL2) {
+  // Fallback to WebGL1
+  if (!gl) {
     gl = (
       canvas.getContext("webgl", params) ||
       canvas.getContext("experimental-webgl", params)
@@ -110,22 +114,32 @@ export function getWebGLContext(canvas: HTMLCanvasElement): {
     throw new Error("WebGL not supported");
   }
   
-  let halfFloat;
-  let supportLinearFiltering;
+  let halfFloat: any = null;
+  let supportLinearFiltering = false;
+
   if (isWebGL2) {
-    (gl as WebGL2RenderingContext).getExtension("EXT_color_buffer_float");
-    supportLinearFiltering = (gl as WebGL2RenderingContext).getExtension("OES_texture_float_linear");
+    const gl2 = gl as WebGL2RenderingContext;
+    gl2.getExtension("EXT_color_buffer_float");
+    supportLinearFiltering = !!gl2.getExtension("OES_texture_float_linear");
   } else {
-    halfFloat = gl.getExtension("OES_texture_half_float");
-    supportLinearFiltering = gl.getExtension("OES_texture_half_float_linear");
+    const gl1 = gl as WebGLRenderingContext;
+    halfFloat = gl1.getExtension("OES_texture_half_float");
+    supportLinearFiltering = !!gl1.getExtension("OES_texture_half_float_linear");
   }
+
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
-  const halfFloatTexType = isWebGL2
-    ? (gl as WebGL2RenderingContext).HALF_FLOAT
-    : halfFloat?.HALF_FLOAT_OES;
   
-  if (!halfFloatTexType) {
-    throw new Error("HALF_FLOAT textures not supported");
+  // Ensure halfFloatTexType is properly set
+  let halfFloatTexType: number;
+  
+  if (isWebGL2) {
+    halfFloatTexType = (gl as WebGL2RenderingContext).HALF_FLOAT;
+  } else {
+    const ext = halfFloat as WebGLExtension | null;
+    if (!ext || !('HALF_FLOAT_OES' in ext)) {
+      throw new Error("HALF_FLOAT textures not supported");
+    }
+    halfFloatTexType = ext.HALF_FLOAT_OES;
   }
   
   let formatRGBA;
@@ -134,22 +148,23 @@ export function getWebGLContext(canvas: HTMLCanvasElement): {
 
   try {
     if (isWebGL2) {
+      const gl2 = gl as WebGL2RenderingContext;
       formatRGBA = getSupportedFormat(
         gl,
-        (gl as WebGL2RenderingContext).RGBA16F,
+        gl2.RGBA16F,
         gl.RGBA,
         halfFloatTexType
       );
       formatRG = getSupportedFormat(
-        gl, 
-        (gl as WebGL2RenderingContext).RG16F, 
-        (gl as WebGL2RenderingContext).RG, 
+        gl,
+        gl2.RG16F,
+        gl2.RG,
         halfFloatTexType
       );
       formatR = getSupportedFormat(
-        gl, 
-        (gl as WebGL2RenderingContext).R16F, 
-        (gl as WebGL2RenderingContext).RED, 
+        gl,
+        gl2.R16F,
+        gl2.RED,
         halfFloatTexType
       );
     } else {
@@ -173,26 +188,36 @@ export function getWebGLContext(canvas: HTMLCanvasElement): {
       formatRG,
       formatR,
       halfFloatTexType,
-      supportLinearFiltering: !!supportLinearFiltering,
+      supportLinearFiltering,
     },
   };
 }
 
+// Type for optional WebGL extensions
+interface WebGLExtension {
+  [key: string]: any;
+}
+
 export function getSupportedFormat(
-  gl: WebGLRenderingContext | WebGL2RenderingContext, 
+  gl: UnifiedWebGLContext, 
   internalFormat: number, 
   format: number, 
   type: number
 ): { internalFormat: number; format: number } | null {
   if (!supportRenderTextureFormat(gl, internalFormat, format, type)) {
-    switch (internalFormat) {
-      case (gl as WebGL2RenderingContext).R16F:
-        return getSupportedFormat(gl, (gl as WebGL2RenderingContext).RG16F, (gl as WebGL2RenderingContext).RG, type);
-      case (gl as WebGL2RenderingContext).RG16F:
-        return getSupportedFormat(gl, (gl as WebGL2RenderingContext).RGBA16F, gl.RGBA, type);
-      default:
-        return null;
+    // For WebGL2
+    if ('R16F' in gl) {
+      const gl2 = gl as WebGL2RenderingContext;
+      switch (internalFormat) {
+        case gl2.R16F:
+          return getSupportedFormat(gl, gl2.RG16F, gl2.RG, type);
+        case gl2.RG16F:
+          return getSupportedFormat(gl, gl2.RGBA16F, gl.RGBA, type);
+        default:
+          return null;
+      }
     }
+    return null;
   }
   return {
     internalFormat,
