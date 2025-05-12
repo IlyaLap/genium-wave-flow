@@ -14,8 +14,8 @@ const GeniumLogo: React.FC<GeniumLogoProps> = ({ className = '' }) => {
         alt="Genium Group Logo" 
         className="h-10 w-auto mr-2"
         onError={(e) => {
-          console.error("Failed to load logo image");
-          // Fallback to SVG version
+          console.error("Failed to load logo image", e);
+          // Fallback to text-only version
           e.currentTarget.style.display = 'none';
         }}
       />

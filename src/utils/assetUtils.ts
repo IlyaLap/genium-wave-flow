@@ -12,9 +12,13 @@ export const getAssetPath = (path: string): string => {
   return normalizedPath;
 };
 
-// For image assets specifically
+// For image assets specifically - handle both direct and lovable-uploads paths
 export const getImagePath = (imageName: string): string => {
-  return getAssetPath(`lovable-uploads/${imageName}`);
+  // If it already includes the lovable-uploads path, don't add it again
+  if (imageName.includes('lovable-uploads/')) {
+    return imageName;
+  }
+  return `lovable-uploads/${imageName}`;
 };
 
 // List of main assets for preloading
@@ -26,8 +30,15 @@ export const MAIN_ASSETS = {
 
 // Function to preload critical assets
 export const preloadCriticalAssets = (): void => {
-  Object.values(MAIN_ASSETS).forEach(asset => {
-    const img = new Image();
-    img.src = getImagePath(asset);
-  });
+  const preloadAsset = (asset: string) => {
+    try {
+      const img = new Image();
+      img.src = getImagePath(asset);
+      console.log(`Preloading asset: ${img.src}`);
+    } catch (e) {
+      console.error(`Failed to preload asset: ${asset}`, e);
+    }
+  };
+
+  Object.values(MAIN_ASSETS).forEach(preloadAsset);
 };
