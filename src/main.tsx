@@ -34,8 +34,8 @@ const runDiagnostics = () => {
   console.log("Current URL:", window.location.href);
   console.log("Current pathname:", window.location.pathname);
   
-  // Check for Netlify environment
-  console.log("Is Netlify:", typeof window.netlify !== 'undefined');
+  // Check for Netlify environment - using a safer approach
+  console.log("Is Netlify:", typeof (window as any).netlify !== 'undefined');
   
   // Check for environment variables
   console.log("NODE_ENV:", process.env.NODE_ENV);
