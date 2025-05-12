@@ -2,8 +2,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
-import { copyNetlifyFiles, buildInfoPlugin } from "./src/vitePlugins";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -34,12 +32,26 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     // Only use componentTagger in development mode
-    mode === 'development' && componentTagger(),
+    mode === 'development' && (() => {
+      try {
+        const { componentTagger } = require("lovable-tagger");
+        return componentTagger();
+      } catch (e) {
+        console.warn("Lovable tagger not available in this environment");
+        return null;
+      }
+    })(),
     // Custom plugin to copy Netlify configuration files
-    copyNetlifyFiles(),
-    // Add build info plugin for debugging
-    buildInfoPlugin(),
-  ].filter(Boolean),
+    (() => {
+      try {
+        const { copyNetlifyFiles, buildInfoPlugin } = require("./src/vitePlugins");
+        return [copyNetlifyFiles(), buildInfoPlugin()];
+      } catch (e) {
+        console.warn("Custom plugins not available in this environment");
+        return [];
+      }
+    })(),
+  ].flat().filter(Boolean),
   
   resolve: {
     alias: {
