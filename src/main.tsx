@@ -141,7 +141,7 @@ const createVisualError = (error: unknown) => {
         });
       });
     }
-    window.location.reload(true);
+    window.location.reload();
   });
   
   return errorElement;

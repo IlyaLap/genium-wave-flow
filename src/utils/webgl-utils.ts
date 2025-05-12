@@ -99,7 +99,7 @@ export function getWebGLContext(canvas: HTMLCanvasElement): {
   };
   
   // First try WebGL2
-  let gl: UnifiedWebGLContext | null = canvas.getContext("webgl2", params);
+  let gl: UnifiedWebGLContext | null = canvas.getContext("webgl2", params) as WebGL2RenderingContext | null;
   const isWebGL2 = !!gl;
   
   // Fallback to WebGL1
@@ -206,7 +206,7 @@ export function getSupportedFormat(
 ): { internalFormat: number; format: number } | null {
   if (!supportRenderTextureFormat(gl, internalFormat, format, type)) {
     // For WebGL2
-    if ('R16F' in gl) {
+    if ((gl as WebGL2RenderingContext).R16F !== undefined) {
       const gl2 = gl as WebGL2RenderingContext;
       switch (internalFormat) {
         case gl2.R16F:
@@ -226,7 +226,7 @@ export function getSupportedFormat(
 }
 
 export function supportRenderTextureFormat(
-  gl: WebGLRenderingContext | WebGL2RenderingContext, 
+  gl: UnifiedWebGLContext, 
   internalFormat: number, 
   format: number, 
   type: number

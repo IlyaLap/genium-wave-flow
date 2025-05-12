@@ -83,7 +83,8 @@ export default function WebGLFallback({
       )}
       
       {/* Add the CSS animations */}
-      <style jsx>{`
+      <style>
+        {`
         @keyframes pulse {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.5; }
@@ -95,7 +96,8 @@ export default function WebGLFallback({
           50% { transform: translate(10px, -15px); }
           75% { transform: translate(-15px, -10px); }
         }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 }

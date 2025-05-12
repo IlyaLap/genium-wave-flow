@@ -1,4 +1,7 @@
 
+import React from 'react';
+import ReactDOM from 'react-dom';
+
 /**
  * Diagnostic utilities for troubleshooting deployment issues
  */
@@ -156,14 +159,15 @@ function addDebugElement() {
     debugElem.style.borderTopLeftRadius = "4px";
     
     // Add version info
-    debugElem.textContent = `v${__APP_VERSION__ || '1.0.0'} | ${import.meta.env.MODE}`;
+    const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
+    debugElem.textContent = `v${appVersion} | ${import.meta.env.MODE}`;
     
     // Add click handler to show more details
     debugElem.addEventListener("click", () => {
       console.log("Environment:", {
         mode: import.meta.env.MODE,
         baseUrl: import.meta.env.BASE_URL,
-        buildTime: __BUILD_TIME__
+        buildTime: typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'
       });
       
       // Toggle display of diagnostic panel
@@ -188,13 +192,15 @@ function addDebugElement() {
         panel.style.fontFamily = "monospace";
         
         const webGLInfo = checkWebGLSupport();
+        const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
+        const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown';
         
         panel.innerHTML = `
           <h4 style="margin-top:0;margin-bottom:8px;color:#45f;">Deployment Info</h4>
-          <p>Version: ${__APP_VERSION__ || '1.0.0'}</p>
+          <p>Version: ${appVersion}</p>
           <p>Environment: ${import.meta.env.MODE}</p>
           <p>Base URL: ${import.meta.env.BASE_URL}</p>
-          <p>Build Time: ${__BUILD_TIME__}</p>
+          <p>Build Time: ${buildTime}</p>
           <h4 style="margin-top:10px;margin-bottom:8px;color:#45f;">WebGL</h4>
           <p>Supported: ${webGLInfo.supported ? 'Yes' : 'No'}</p>
           ${webGLInfo.renderer ? `<p>Renderer: ${webGLInfo.renderer}</p>` : ''}
