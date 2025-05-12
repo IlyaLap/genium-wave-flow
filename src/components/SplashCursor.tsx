@@ -1,8 +1,8 @@
-
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { FluidEngine } from "@/utils/fluid-engine";
-import { FluidConfig } from "@/utils/webgl-utils";
+import { FluidConfig, UnifiedWebGLContext } from "@/utils/webgl-utils";
+import WebGLFallback from "./WebGLFallback";
 
 export function SplashCursor({
   // Add whatever props you like for customization
@@ -35,7 +35,7 @@ export function SplashCursor({
     const detectWebGLSupport = () => {
       try {
         // Try WebGL2 first
-        let gl = canvas.getContext("webgl2");
+        let gl: UnifiedWebGLContext | null = canvas.getContext("webgl2") as WebGL2RenderingContext | null;
         
         if (!gl) {
           // Fall back to WebGL 1 with proper type handling
@@ -183,11 +183,7 @@ export function SplashCursor({
   // Provide a visual fallback if WebGL is not supported or initialization failed
   if (!webGLSupported || errorMessage) {
     return (
-      <div className="fixed inset-0 bg-gradient-to-b from-purple-900 via-black to-black z-[-1]">
-        <div className="fixed bottom-4 left-4 text-xs text-gray-500">
-          {errorMessage || "WebGL not supported - Using gradient fallback"}
-        </div>
-      </div>
+      <WebGLFallback message={errorMessage || "WebGL not supported - Using gradient fallback"} />
     );
   }
 
