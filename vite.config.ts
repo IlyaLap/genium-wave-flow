@@ -69,8 +69,8 @@ export default defineConfig(({ mode }) => ({
         // Only attempt to load in development mode
         const { componentTagger } = require("lovable-tagger");
         return componentTagger();
-      } catch (e) {
-        console.warn("Development plugin not available:", e.message);
+      } catch (e: unknown) {
+        console.warn("Development plugin not available:", (e as Error).message);
         return null;
       }
     })(),
