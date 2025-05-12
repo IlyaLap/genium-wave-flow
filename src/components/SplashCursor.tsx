@@ -25,29 +25,52 @@ export function SplashCursor({
   const fluidEngineRef = useRef<FluidEngine | null>(null);
   const [webGLSupported, setWebGLSupported] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Check for WebGL support first
-    try {
-      const gl = canvas.getContext("webgl") || canvas.getContext("webgl2");
-      if (!gl) {
+    // Try to detect WebGL support more reliably
+    const detectWebGLSupport = () => {
+      try {
+        // Try WebGL2 first
+        let gl = canvas.getContext("webgl2");
+        if (!gl) {
+          // Fall back to WebGL 1
+          gl = canvas.getContext("webgl") || 
+               canvas.getContext("experimental-webgl") as WebGLRenderingContext;
+        }
+        
+        if (!gl) {
+          setWebGLSupported(false);
+          setErrorMessage("WebGL is not supported in your browser");
+          console.error("WebGL is not supported in your browser");
+          return false;
+        }
+        
+        // Try creating a simple shader program to verify WebGL works
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        if (!vertexShader) {
+          throw new Error("Failed to create vertex shader");
+        }
+        
+        return true;
+      } catch (e) {
         setWebGLSupported(false);
-        setErrorMessage("WebGL is not supported in your browser");
-        console.error("WebGL is not supported in your browser");
-        return;
+        setErrorMessage(`WebGL initialization error: ${e instanceof Error ? e.message : String(e)}`);
+        console.error("WebGL initialization failed:", e);
+        return false;
       }
-    } catch (e) {
-      setWebGLSupported(false);
-      setErrorMessage(`WebGL initialization error: ${e instanceof Error ? e.message : String(e)}`);
-      console.error("WebGL initialization failed:", e);
+    };
+
+    // Only proceed if WebGL is supported
+    if (!detectWebGLSupport()) {
       return;
     }
 
     try {
-      // Configure canvas
+      // Configure canvas - use window dimensions
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       
@@ -71,25 +94,53 @@ export function SplashCursor({
         COLORFUL: true,
       };
       
-      // Create FluidEngine
-      const fluidEngine = new FluidEngine(canvas, config);
-      fluidEngineRef.current = fluidEngine;
+      // Create FluidEngine with error handling
+      let fluidEngine: FluidEngine;
+      try {
+        fluidEngine = new FluidEngine(canvas, config);
+        fluidEngineRef.current = fluidEngine;
+      } catch (error) {
+        console.error("Failed to initialize FluidEngine:", error);
+        setWebGLSupported(false);
+        setErrorMessage(`FluidEngine initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+        return;
+      }
       
       // Add pointer interactions
-      fluidEngine.addPointerInteraction();
+      try {
+        fluidEngine.addPointerInteraction();
+      } catch (error) {
+        console.error("Failed to add pointer interactions:", error);
+        // Continue anyway as this is not critical
+      }
       
-      // Initial splats
-      fluidEngine.multipleSplats(parseInt((Math.random() * 20).toString()) + 5);
+      // Initial splats with error handling
+      try {
+        fluidEngine.multipleSplats(parseInt((Math.random() * 10 + 5).toString()));
+      } catch (error) {
+        console.error("Failed to create initial splats:", error);
+        // Continue anyway as this is not critical
+      }
       
-      // Start animation
-      fluidEngine.update();
+      // Start animation with error handling
+      try {
+        fluidEngine.update();
+        setHasInitialized(true);
+      } catch (error) {
+        console.error("Failed to start animation:", error);
+        setErrorMessage(`Animation failed to start: ${error instanceof Error ? error.message : String(error)}`);
+      }
       
       // Handle window resize
       const handleResize = () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         if (fluidEngineRef.current) {
-          fluidEngineRef.current.resize();
+          try {
+            fluidEngineRef.current.resize();
+          } catch (error) {
+            console.error("Failed to resize fluid engine:", error);
+          }
         }
       };
       
@@ -97,7 +148,14 @@ export function SplashCursor({
       
       return () => {
         window.removeEventListener('resize', handleResize);
-        // Any cleanup if needed
+        // Cancel any animations if needed
+        if (fluidEngineRef.current) {
+          try {
+            // Any cleanup method if available
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+        }
       };
     } catch (e) {
       setErrorMessage(`Fluid simulation error: ${e instanceof Error ? e.message : String(e)}`);
@@ -121,12 +179,12 @@ export function SplashCursor({
     TRANSPARENT,
   ]);
 
-  if (!webGLSupported) {
+  // Provide a visual fallback if WebGL is not supported or initialization failed
+  if (!webGLSupported || errorMessage) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 text-white p-4">
-        <div>
-          <h2 className="text-xl font-bold mb-2">WebGL Not Supported</h2>
-          <p>{errorMessage || "Your browser or device does not support WebGL which is required for this effect."}</p>
+      <div className="fixed inset-0 bg-gradient-to-b from-purple-900 via-black to-black z-[-1]">
+        <div className="fixed bottom-4 left-4 text-xs text-gray-500">
+          {errorMessage || "WebGL not supported - Using gradient fallback"}
         </div>
       </div>
     );
@@ -135,7 +193,8 @@ export function SplashCursor({
   return (
     <canvas
       ref={canvasRef}
-      className="fixed top-0 left-0 w-full h-full pointer-events-auto z-[-1]"
+      className={`fixed top-0 left-0 w-full h-full pointer-events-auto z-[-1] ${!hasInitialized ? 'opacity-0' : 'opacity-100 transition-opacity duration-1000'}`}
+      aria-hidden="true"
     />
   );
 }

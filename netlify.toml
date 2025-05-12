@@ -2,8 +2,8 @@
 # This file tells Netlify how to build and deploy your React application
 
 [build]
-  publish = "dist"
-  command = "npm run build"
+  publish = "dist"  # This is the folder that gets deployed (Vite default)
+  command = "npm run build"  # Build command
 
 # This is crucial for a React Router application
 # It ensures all routes redirect to index.html so your client-side router can handle them
@@ -12,13 +12,14 @@
   to = "/index.html"
   status = 200
 
-# Environment variable configuration example
-# You can also set these in the Netlify UI
+# Environment variable configuration
 [context.production.environment]
   VITE_APP_ENV = "production"
+  VITE_PUBLIC_URL = "/"
 
 [context.deploy-preview.environment]
   VITE_APP_ENV = "preview"
+  VITE_PUBLIC_URL = "/"
 
 # Optional: Configure headers for security, caching, etc.
 [[headers]]
@@ -28,3 +29,17 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer-when-downgrade"
+    Cache-Control = "public, max-age=31536000"
+
+# Add specific headers for assets to improve caching
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/lovable-uploads/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+    Access-Control-Allow-Origin = "*"
+

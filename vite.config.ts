@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
   },
   
   // Base path configuration - this is critical for routing
-  base: '/',
+  base: process.env.VITE_PUBLIC_URL || '/',
   
   plugins: [
     react(),
@@ -49,4 +49,10 @@ export default defineConfig(({ mode }) => ({
   
   // Explicitly define environment variable handling
   envPrefix: 'VITE_',
+  
+  // Define custom options for the build
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  }
 }));
