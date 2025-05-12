@@ -3,7 +3,7 @@
 
 [build]
   publish = "dist"  # This is the folder that gets deployed (Vite default)
-  command = "npm ci && npm run build"  # Using npm ci for more reliable installs
+  command = "npm ci && npm install -g vite && npm run build"  # Install vite globally before building
 
 # This is crucial for a React Router application
 # It ensures all routes redirect to index.html so your client-side router can handle them
