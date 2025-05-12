@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { FluidEngine } from "@/utils/fluid-engine";
@@ -7,7 +8,7 @@ import WebGLFallback from "./WebGLFallback";
 export function SplashCursor({
   // Add whatever props you like for customization
   SIM_RESOLUTION = 128,
-  DYE_RESOLUTION = 1440,
+  DYE_RESOLUTION = 1024, // Lower resolution for better performance
   CAPTURE_RESOLUTION = 512,
   DENSITY_DISSIPATION = 3.5,
   VELOCITY_DISSIPATION = 2,
@@ -26,6 +27,7 @@ export function SplashCursor({
   const [webGLSupported, setWebGLSupported] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -123,14 +125,22 @@ export function SplashCursor({
         // Continue anyway as this is not critical
       }
       
-      // Start animation with error handling
-      try {
-        fluidEngine.update();
-        setHasInitialized(true);
-      } catch (error) {
-        console.error("Failed to start animation:", error);
-        setErrorMessage(`Animation failed to start: ${error instanceof Error ? error.message : String(error)}`);
-      }
+      // Start animation loop with proper animation frame handling
+      const animate = () => {
+        try {
+          if (fluidEngineRef.current) {
+            fluidEngineRef.current.update();
+          }
+          animationFrameRef.current = requestAnimationFrame(animate);
+        } catch (error) {
+          console.error("Animation error:", error);
+          cancelAnimationFrame(animationFrameRef.current!);
+        }
+      };
+      
+      // Start the animation
+      animationFrameRef.current = requestAnimationFrame(animate);
+      setHasInitialized(true);
       
       // Handle window resize
       const handleResize = () => {
@@ -149,13 +159,9 @@ export function SplashCursor({
       
       return () => {
         window.removeEventListener('resize', handleResize);
-        // Cancel any animations if needed
-        if (fluidEngineRef.current) {
-          try {
-            // Any cleanup method if available
-          } catch (e) {
-            // Ignore cleanup errors
-          }
+        // Cancel animations on cleanup
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
         }
       };
     } catch (e) {
