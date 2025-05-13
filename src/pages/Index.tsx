@@ -37,7 +37,7 @@ const Index = () => {
               <SubsidiaryCard 
                 title="IVL Consulting" 
                 description="IVL Consulting creates transformative Go-To-Market motions, with a clear 4-stage process of mapping, building, running and documenting the GTM function - your trusted partner for GTM engineering."
-                logoSrc="/lovable-uploads/76e7e9ea-7de1-40ee-9d23-2bb13aff898e.png"
+                logoSrc="/lovable-uploads/2521426c-4675-4bf0-9c47-54b3d43f2547.png"
                 url="https://ivl-consulting.com"
               />
             </div>
